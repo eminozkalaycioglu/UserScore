@@ -15,7 +15,7 @@ class FirebaseConnection {
     }
     
     static let shared = FirebaseConnection()
-    private var ref: DatabaseReference! = Database.database().reference()
+    private var ref: DatabaseReference!
     
     
     func createUser(fullName: String? = nil, email: String, pass: String,completion: ((String?) -> ())? = nil) {
@@ -39,7 +39,9 @@ class FirebaseConnection {
     }
     
     private func saveWithInfos(email: String, fullName: String, uid: String) {
-        
+
+        self.ref = Database.database().reference()
+
         var dictionary: [String:Any] = [:]
         dictionary["fullname"] = fullName
         dictionary["uid"] = uid
@@ -57,7 +59,10 @@ class FirebaseConnection {
     }
     
     func incrementScore(uid: String, piece: Int, _ completion: ((Int?) -> ())? = nil) {
+
         
+        self.ref = Database.database().reference()
+
         var dictionary: [String:Any] = [:]
         let specificUser = self.ref.child("userScores").child(uid)
         
@@ -83,19 +88,26 @@ class FirebaseConnection {
     
     
     func getSpecificUserScore(uid: String, _ completion: ((Int) -> ())? = nil) {
-        
-        let specificUser = self.ref.child("userScores").child(uid)
-        
-        specificUser.observeSingleEvent(of: .value) { (snapshot) in
-            let value = snapshot.value as? NSDictionary
-            let score = (value?["score"] as? Int) ?? 0
-            completion?(score)
+        self.ref = Database.database().reference()
+
+        if self.signed() && uid.count != 0 {
             
+            let specificUser = self.ref.child("userScores").child(uid)
             
+            specificUser.observeSingleEvent(of: .value) { (snapshot) in
+                let value = snapshot.value as? NSDictionary
+                let score = (value?["score"] as? Int) ?? 0
+                completion?(score)
+                return
+                
+            }
         }
+        
     }
     
     func signIn(withEmail email: String, password: String, _ completion: ((String?) -> ())? = nil){
+
+        self.ref = Database.database().reference()
         Auth.auth().signIn(withEmail: email, password: password) { (user, error) in
             if error != nil{
                 completion?(error?.localizedDescription)
@@ -125,12 +137,9 @@ class FirebaseConnection {
     }
     
     func signed() -> Bool {
-        if Auth.auth().currentUser != nil {
-            return true
-        }
-        else {
-            return false
-        }
+
+        return Auth.auth().currentUser == nil ? false : true
+        
     }
     
 }
